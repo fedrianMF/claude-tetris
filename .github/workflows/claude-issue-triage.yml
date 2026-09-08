@@ -1,0 +1,47 @@
+name: Claude Issue Triage
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write # Required to add/remove labels and post the diagnosis comment
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Issue Triage
+        id: claude-triage
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          claude_args: '--allowedTools "Bash(gh issue edit:*),Bash(gh issue comment:*),Bash(gh label list:*)"'
+
+          prompt: |
+            You are triaging issue #${{ github.event.issue.number }} on this repository (a vanilla JS Tetris game — see CLAUDE.md for the architecture of game.js).
+
+            Do the following, in order:
+
+            1. Read the issue title and body (available via the GitHub context, or `gh issue view ${{ github.event.issue.number }}`).
+            2. Read CLAUDE.md and the relevant parts of game.js/index.html/style.css to understand which part of the game the issue is about.
+            3. Run `gh label list` to see the repo's existing labels. Choose ONLY from these existing labels — do not create new ones: bug, enhancement, documentation, question, duplicate, invalid, wontfix, help wanted, good first issue, accessibility.
+               - Apply the ones that fit with `gh issue edit ${{ github.event.issue.number }} --add-label "label-name"`.
+               - If this is a re-triage of an edited issue and a previously applied label from this set no longer fits, remove it with `--remove-label "label-name"`.
+            4. Post exactly one comment on the issue with `gh issue comment ${{ github.event.issue.number }} --body "..."` containing a general diagnosis to help a developer implement the fix later:
+               - Likely root cause of the problem.
+               - The specific functions/files in game.js likely involved (e.g. `collide`, `tryRotate`, `lockPiece`, `clearLines`, `spawn`, `draw`, the input handler, etc.).
+               - A short suggested approach for the fix.
+               - Do NOT write the actual code fix — only the diagnosis and approach.
+
+            Keep the comment concise and focused on helping with implementation later, not on restating the issue.
