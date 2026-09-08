@@ -38,10 +38,26 @@ jobs:
             3. Run `gh label list` to see the repo's existing labels. Choose ONLY from these existing labels — do not create new ones: bug, enhancement, documentation, question, duplicate, invalid, wontfix, help wanted, good first issue, accessibility.
                - Apply the ones that fit with `gh issue edit ${{ github.event.issue.number }} --add-label "label-name"`.
                - If this is a re-triage of an edited issue and a previously applied label from this set no longer fits, remove it with `--remove-label "label-name"`.
-            4. Post exactly one comment on the issue with `gh issue comment ${{ github.event.issue.number }} --body "..."` containing a general diagnosis to help a developer implement the fix later:
+            4. This step is REQUIRED — you must not finish without posting the comment. Post exactly one comment on the issue containing a general diagnosis to help a developer implement the fix later:
                - Likely root cause of the problem.
                - The specific functions/files in game.js likely involved (e.g. `collide`, `tryRotate`, `lockPiece`, `clearLines`, `spawn`, `draw`, the input handler, etc.).
                - A short suggested approach for the fix.
                - Do NOT write the actual code fix — only the diagnosis and approach.
+
+               The comment body MUST be valid GitHub-flavored Markdown that GitHub can render (use `##` headings, `-` bullet lists, and backtick code spans for function/file names).
+
+               Because the body contains backticks and other shell-sensitive characters, do NOT pass it inline with `--body "..."` (backticks inside double quotes are executed as shell commands and will break). Instead, pipe it in via stdin with a quoted heredoc, for example:
+
+               ```bash
+               gh issue comment ${{ github.event.issue.number }} --body-file - <<'EOF'
+               ## Diagnóstico
+
+               - Causa probable: ...
+               - Archivos/funciones involucradas: `collide`, `tryRotate`
+               - Enfoque sugerido: ...
+               EOF
+               ```
+
+               The quoted `'EOF'` delimiter is required so the heredoc content is passed through literally, with no shell expansion.
 
             Keep the comment concise and focused on helping with implementation later, not on restating the issue.
